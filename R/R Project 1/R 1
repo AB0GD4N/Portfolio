@@ -1,1 +1,325 @@
+install.packages(c("readr", "dplyr", "tidyr","ggplot2","pastecs","moments","e1071"))
+library(e1071)
+library(readr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(pastecs)
+library(moments)
+
+getwd()
+setwd('/Users/sbbogdyn')
+
+#1.
+
+AMD <- read.csv('Desktop/R/AMD.csv')
+AMD <- AMD %>% mutate(Date = as.Date(Date, format = '%Y-%m-%d'))
+
+INTEL <- read.csv('Desktop/R/INTEL.csv')
+INTEL <- INTEL %>% mutate(Date = as.Date(Date, format = '%Y-%m-%d'))
+
+NVIDIA <- read.csv('Desktop/R/NVIDIA.csv')
+NVIDIA <- NVIDIA %>% mutate(Date = as.Date(Date, format = '%Y-%m-%d'))
+
+SP500 <- read.csv('Desktop/R/SP500.csv')
+SP500 <- SP500 %>% mutate(Data = as.Date(Data, format = '%Y-%m-%d'))
+
+#2.
+
+AMD = AMD %>%
+  select(Date, Close) %>%
+  rename(AMD = Close)
+
+INTEL = INTEL %>%
+  select(Date, Close) %>%
+  rename(INTEL = Close)
+
+NVIDIA = NVIDIA %>%
+  select(Date, Close) %>%
+  rename(NVIDIA = Close)
+
+SP500 = SP500 %>%
+  select(Data, Zamkniecie) %>%
+  rename(SP500 = Zamkniecie, Date = Data)
+
+DANE <- AMD %>%
+  left_join(INTEL, by= c('Date'))
+
+DANE <- DANE %>%
+  left_join(NVIDIA, by= c('Date'))
+
+DANE <- DANE %>%
+  left_join(SP500, by= c('Date'))
+
+#3.
+
+gg_AMD <- ggplot(DANE, aes(x = Date, y = AMD, color = "AMD")) +
+  geom_line(color = "red") +
+  labs(title = "Ceny zamknięcia akcji AMD",
+       x = "Data",
+       y = "Cena zamknięcia") +
+  theme_minimal()
+
+gg_INTEL <- ggplot(DANE, aes(x = Date, y = INTEL, color = "INTEL")) +
+  geom_line(color = "green") +
+  labs(title = "Ceny zamknięcia akcji INTEL",
+       x = "Data",
+       y = "Cena zamknięcia") +
+  theme_minimal()
+
+gg_NVIDIA <- ggplot(DANE, aes(x = Date, y = NVIDIA, color = "NVIDIA")) +
+  geom_line(color = "blue") +
+  labs(title = "Ceny zamknięcia akcji NVIDIA",
+       x = "Data",
+       y = "Cena zamknięcia") +
+  theme_minimal()
+
+gg_SP500 <- ggplot(DANE, aes(x = Date, y = SP500, color = "SP500")) +
+  geom_line(color = "black") +
+  labs(title = "Ceny zamknięcia Indeksu SP500",
+       x = "Data",
+       y = "Cena zamknięcia") +
+  theme_minimal()
+
+print(gg_AMD)
+print(gg_INTEL)
+print(gg_NVIDIA)
+print(gg_SP500)
+
+# Zapis wykresów do plików
+ggsave("wykres_amd.png", gg_amd, width = 10, height = 6)
+ggsave("wykres_intel.png", gg_intel, width = 10, height = 6)
+ggsave("wykres_nvidia.png", gg_nvidia, width = 10, height = 6)
+ggsave("wykres_sp500.png", gg_sp500, width = 10, height = 6)
+
+# Wykres podsumowujący z indeksem 
+gg_all  <- ggplot(DANE, aes(x = Date)) +
+  geom_line(aes(y = AMD, color = "AMD")) +
+  geom_line(aes(y = INTEL, color = "INTEL")) +
+  geom_line(aes(y = NVIDIA, color = "NVIDIA")) +
+  geom_line(aes(y = SP500, color = "SP500")) +
+  labs(title = "Ceny zamknięcia akcji",
+       x = "Data",
+       y = "Cena zamknięcia") +
+  scale_color_manual(values = c("AMD" = "red", "INTEL" = "green", "NVIDIA" = "blue", "SP500" = "black")) +
+  theme_minimal()
+print(gg_all)
+
+#Wykres podsumowujacy bez indeksu
+gg_all_no_index <- ggplot(DANE, aes(x = Date)) +
+  geom_line(aes(y = AMD, color = "AMD")) +
+  geom_line(aes(y = INTEL, color = "INTEL")) +
+  geom_line(aes(y = NVIDIA, color = "NVIDIA")) +
+  labs(title = "Ceny zamknięcia akcji",
+       x = "Data",
+       y = "Cena zamknięcia") +
+  scale_color_manual(values = c("AMD" = "red", "INTEL" = "green", "NVIDIA" = "blue")) +
+  theme_minimal()
+print(gg_all_bez_indeksu)
+
+#4. 
+
+returns_data <- DANE %>%
+  mutate(log_returns_AMD = log(AMD / lag(AMD)),
+         log_returns_INTEL = log(INTEL / lag(INTEL)),
+         log_returns_NVIDIA = log(NVIDIA / lag(NVIDIA)),
+         log_return_SP500 = log(SP500 / lag(SP500)))
+
+returns_data <- na.omit(returns_data)
+
+#5. 
+
+log_returns_data <- returns_data[, c("log_returns_AMD", "log_returns_INTEL", "log_returns_NVIDIA", "log_return_SP500")]
+
+
+#Statystyki opisowe
+mean_values <- colMeans(log_returns_data, na.rm = TRUE)
+median_values <- sapply(log_returns_data, median, na.rm = TRUE)
+std_dev_values <- sapply(log_returns_data, sd, na.rm = TRUE)
+skewness_values <- skewness(log_returns_data, na.rm = TRUE)
+kurtosis_values <- kurtosis(log_returns_data, na.rm = TRUE)
+
+#Ramka danych z wynikami
+statystyki_opisowe <- data.frame(
+  średnia = mean_values,
+  mediana = median_values,
+  odchylenie_std = std_dev_values,
+  skośność = skewness_values,
+  kurtoza = kurtosis_values
+)
+print(statystyki_wybrane)
+
+# Histogramy dla logarytmicznych stóp zwrotu
+hist_AMD <- ggplot(returns_data, aes(x = log_returns_AMD)) +
+  geom_histogram(bins = 30, fill = "red", color = "black", alpha = 0.7) +
+  labs(title = "Histogram logarytmicznych stóp zwrotu dla AMD",
+       x = "Logarytmiczne stopy zwrotu",
+       y = "Liczba obserwacji") +
+  theme_minimal()
+print(hist_AMD)
+
+hist_INTEL <- ggplot(returns_data, aes(x = log_returns_INTEL)) +
+  geom_histogram(bins = 30, fill = "green", color = "black", alpha = 0.7) +
+  labs(title = "Histogram logarytmicznych stóp zwrotu dla INTEL",
+       x = "Logarytmiczne stopy zwrotu",
+       y = "Liczba obserwacji") +
+  theme_minimal()
+print(hist_INTEL)
+
+hist_NVIDIA <- ggplot(returns_data, aes(x = log_returns_NVIDIA)) +
+  geom_histogram(bins = 30, fill = "blue", color = "black", alpha = 0.7) +
+  labs(title = "Histogram logarytmicznych stóp zwrotu dla NVIDIA",
+       x = "Logarytmiczne stopy zwrotu",
+       y = "Liczba obserwacji") +
+  theme_minimal()
+print(hist_NVIDIA)
+
+hist_SP500 <- ggplot(returns_data, aes(x = log_return_SP500)) +
+  geom_histogram(bins = 30, fill = "black", color = "white", alpha = 0.7) +
+  labs(title = "Histogram logarytmicznych stóp zwrotu dla Indeksu SP500",
+       x = "Logarytmiczne stopy zwrotu",
+       y = "Liczba obserwacji") +
+  theme_minimal()
+print(hist_SP500)
+
+# Wykresy kwantylowe
+qq_AMD <- ggplot(returns_data, aes(sample = log_returns_AMD)) +
+  geom_qq() +
+  geom_qq_line(color = "red") +
+  labs(title = "Wykres kwantyli-kwantyli dla AMD",
+       x = "Kwantyle teoretyczne",
+       y = "Kwantyle obserwowane") +
+  theme_minimal()
+print(qq_AMD)
+
+qq_INTEL <- ggplot(returns_data, aes(sample = log_returns_INTEL)) +
+  geom_qq() +
+  geom_qq_line(color = "green") +
+  labs(title = "Wykres kwantyli-kwantyli dla INTEL",
+       x = "Kwantyle teoretyczne",
+       y = "Kwantyle obserwowane") +
+  theme_minimal()
+print(qq_INTEL)
+
+qq_NVIDIA <- ggplot(returns_data, aes(sample = log_returns_NVIDIA)) +
+  geom_qq() +
+  geom_qq_line(color = "blue") +
+  labs(title = "Wykres kwantyli-kwantyli dla NVIDIA",
+       x = "Kwantyle teoretyczne",
+       y = "Kwantyle obserwowane") +
+  theme_minimal()
+print(qq_NVIDIA)
+
+qq_SP500 <- ggplot(returns_data, aes(sample = log_return_SP500)) +
+  geom_qq() +
+  geom_qq_line(color = "black") +
+  labs(title = "Wykres kwantyli-kwantyli dla Indeksu SP500",
+       x = "Kwantyle teoretyczne",
+       y = "Kwantyle obserwowane") +
+  theme_minimal()
+print(qq_SP500)
+
+
+# Zapis wykresów do plików
+ggsave("hist_AMD.png", hist_AMD, width = 10, height = 6)
+ggsave("hist_INTEL.png", hist_INTEL, width = 10, height = 6)
+ggsave("hist_NVIDIA.png", hist_NVIDIA, width = 10, height = 6)
+ggsave("hist_SP500.png", hist_SP500, width = 10, height = 6)
+ggsave("qq_AMD.png", qq_AMD, width = 10, height = 6)
+ggsave("qq_INTEL.png", qq_INTEL, width = 10, height = 6)
+ggsave("qq_NVIDIA.png", qq_NVIDIA, width = 10, height = 6)
+ggsave("qq_SP500.png", qq_SP500, width = 10, height = 6)
+
+#6.
+
+model_regression <- lm(cbind(log_returns_AMD, log_returns_INTEL, log_returns_NVIDIA) ~ log_return_SP500, data = returns_data)
+
+summary(model_regression)
+
+#Parametry modelu
+alpha_AMD <- coef(model_regression)[1, 1]
+beta_AMD <- coef(model_regression)[2, 1]
+alpha_INTEL <- coef(model_regression)[1, 2]
+beta_INTEL <- coef(model_regression)[2, 2]
+alpha_NVIDIA <- coef(model_regression)[1, 3]
+beta_NVIDIA <- coef(model_regression)[2, 3]
+
+#Interpretacja beta
+interpret_AMD <- paste("Dla każdego wzrostu o 1% w logarytmicznej stopie zwrotu indeksu giełdowego (rM),",
+                                 "oczekiwany wzrost w logarytmicznej stopie zwrotu akcji AMD (ri) wynosi", round(beta_amzn, 4), "%.")
+interpret_INTEL <- paste("Dla każdego wzrostu o 1% w logarytmicznej stopie zwrotu indeksu giełdowego (rM),",
+                                  "oczekiwany wzrost w logarytmicznej stopie zwrotu akcji INTEL (ri) wynosi", round(beta_googl, 4), "%.")
+interpret_NVIDIA <- paste("Dla każdego wzrostu o 1% w logarytmicznej stopie zwrotu indeksu giełdowego (rM),",
+                                 "oczekiwany wzrost w logarytmicznej stopie zwrotu akcji NVIDIA (ri) wynosi", round(beta_msft, 4), "%.")
+
+print(interpretacja_AMD)
+print(interpretacja_INTEL)
+print(interpretacja_NVIDIA)
+
+#7. 
+
+compare_dates <- function(data1, data2, impute_method = "previous") {
+  merged_data <- merge(data1, data2, by = "Date", all = TRUE, suffixes = c("_data1", "_data2"))
+  
+  merged_data <- switch(impute_method,
+                        "previous" = {
+                          merged_data %>% 
+                            mutate_at(vars(starts_with("Close")), ~ ifelse(is.na(.), lag(.), .))
+                        },
+                        "zero" = {
+                          merged_data %>% 
+                            mutate_at(vars(starts_with("Close")), ~ ifelse(is.na(.), 0, .))
+                        },
+                        "mean_neighbours" = {
+                          merged_data %>%
+                            mutate_at(vars(starts_with("Close")), ~ ifelse(is.na(.), (lag(.) + lead(.)) / 2, .))
+                        })
+  
+  return(merged_data)
+}
+
+
+# Przykład użycia funkcji
+result <- compare_and_impute_dates(AMD, INTEL, impute_method = "zero")
+
+
+#8. 
+
+
+# Funkcja do obliczenia n średnich z generowanych zbiorów k elementowych
+mean_function <- function(n, k, m, s) {
+  # Użycie funkcji replicate do generowania zbiorów i obliczania średnich
+  wyniki <- replicate(n, mean(rnorm(k, mean = m, sd = s)))
+  return(wyniki)
+}
+
+# Parametry
+n <- 100
+k <- 1000
+m <- 2
+s <- 3.5
+
+# Wywołanie funkcji
+result2 <- mean_function(n, k, m, s)
+
+# Wykres kwantyl-kwantyl
+qqplot <- ggplot2::ggplot(data.frame(result2), aes(sample = result2)) +
+  ggplot2::geom_qq() +
+  ggplot2::geom_qq_line(color = "blue") +
+  ggplot2::labs(title = "Wykres kwantyl-kwantyl",
+                x = "Kwantyle teoretyczne",
+                y = "Kwantyle obserwowane") +
+  ggplot2::theme_minimal()
+
+# Histogram
+histogram <- ggplot2::ggplot(data.frame(result2), aes(x = result2)) +
+  ggplot2::geom_histogram(bins = 30, fill = "blue", color = "black", alpha = 0.7) +
+  ggplot2::labs(title = "Histogram",
+                x = "Średnie wartości",
+                y = "Liczba obserwacji") +
+  ggplot2::theme_minimal()
+
+# Wyświetlenie wykresów
+print(qqplot)
+print(histogram)
 
