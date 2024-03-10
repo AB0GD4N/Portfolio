@@ -1,4 +1,4 @@
-Zadanie 1 [6 pkt]
+Zadanie 1 
 Napisz funkcję election_statistics, która będzie tworzyła obiekt typy Data Frame z jedną z następujących
 statystyk:
 • Frekwencja ogółem (liczba kart wyjętych z urn/ liczba osób uprawnionych do głosowania) (‘frekwencja’)
@@ -23,7 +23,7 @@ Powyższa funkcja powinna zwrócić ramkę danych z nazwami 8 gmin (dodatkowo ta
 
 
 
-Zadanie 2 [4 pkt]
+Zadanie 2 
 Napisz funkcję election, która będzie tworzyła obiekt Data Frame porównujący przeciętne wartości poniższych statystyk we wskazanych latach wyborczych dla n powiatów uszeregowanych według łącznej liczby oddanych głosów (malejąco):
 • procentowe poparcie dla poszczególnych obozów politycznych (poparcie liczymy jako procentowy udział oddanych głosów na dany obóz polityczny),
 • stopa bezrobocia rejestrowanego
