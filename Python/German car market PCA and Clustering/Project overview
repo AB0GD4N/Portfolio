@@ -1,8 +1,0 @@
-Performing Principal Component Analysis and Hierarchical Clustering to group cars into segments on the german market.
-
-Data used in the project can be found on Kaggle: https://www.kaggle.com/datasets/yaminh/german-car-insights
-
-The aim of the project is to analyze the german car market. First part of the project is to decrease the number of variables
-using Principal Component Analysis to optimize the operating time of the model. Then after creating a new dataset with principal 
-components, hierarchical clusterining is performed (namely Ward method), to group cars on the market into clusters, which would help
-car salesmen in germany offer car alternatives to their clients.
